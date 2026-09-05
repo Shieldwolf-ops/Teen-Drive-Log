@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Drive Log" />
+  <meta name="theme-color" content="#6366f1" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Teen Drive Time Log</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; min-height: 100vh; }
+    #root { max-width: 480px; margin: 0 auto; padding: 20px 12px 60px; }
+
+    .page-header { text-align: center; margin-bottom: 20px; }
+    .page-header .icon { font-size: 32px; }
+    .page-header h1 { font-size: 24px; font-weight: 800; color: #1e1b4b; margin: 6px 0 2px; }
+    .page-header p { color: #6b7280; font-size: 13px; margin-bottom: 6px; }
+    .sync-status { font-size: 12px; font-weight: 600; }
+
+    .backup-bar { background: #fff; border-radius: 12px; box-shadow: 0 1px 6px #0001; padding: 11px 14px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .backup-bar span { font-size: 13px; color: #6b7280; font-weight: 600; flex: 1; }
+
+    .btn { border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .btn-green { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .btn-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .btn-purple { background: #6366f1; color: #fff; }
+    .btn-purple-full { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; width: 100%; padding: 13px; font-size: 15px; font-weight: 700; border-radius: 10px; }
+    .btn-gray { background: #e5e7eb; color: #374151; }
+
+    .teen-card { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px #0001; margin-bottom: 16px; overflow: hidden; }
+
+    .teen-header { background: linear-gradient(135deg,#6366f1,#8b5cf6); padding: 14px 14px 12px; }
+    .teen-header-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .teen-name-btn { flex: 1; background: none; border: none; padding: 0; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
+    .teen-name { color: #fff; font-size: 18px; font-weight: 700; }
+    .collapse-arrow { color: #c7d2fe; font-size: 16px; }
+    .remove-btn { background: #ffffff22; border: 1px solid #ffffff44; border-radius: 8px; color: #fecaca; padding: 4px 11px; cursor: pointer; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    .remove-confirm { display: flex; gap: 6px; align-items: center; }
+    .remove-confirm span { color: #fef3c7; font-size: 11px; font-weight: 600; }
+    .btn-danger { background: #ef4444; border: none; border-radius: 7px; color: #fff; padding: 4px 10px; cursor: pointer; font-size: 12px; font-weight: 700; }
+    .btn-ghost { background: #ffffff22; border: 1px solid #ffffff44; border-radius: 7px; color: #fff; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+
+    .mini-progress-wrap { margin-top: 10px; }
+    .mini-progress-labels { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .mini-progress-labels span { color: #c7d2fe; font-size: 11px; }
+    .mini-bar-track { background: #ffffff33; border-radius: 6px; height: 6px; overflow: hidden; }
+    .mini-bar-fill { height: 100%; border-radius: 6px; background: #a5f3fc; transition: width 0.4s ease; }
+    .mini-bar-fill.complete { background: #4ade80; }
+
+    .action-btns { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .action-btn { background: #fff2; border: 1px solid #fff4; border-radius: 8px; color: #fff; padding: 5px 11px; cursor: pointer; font-size: 12px; }
+
+    .teen-body { padding: 0; }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 14px 6px; }
+    .stat-box { background: #f8fafc; border-radius: 10px; padding: 12px 12px 10px; }
+    .stat-label { font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .stat-value { font-size: 14px; font-weight: 700; color: #111; }
+    .stat-sub { font-size: 11px; color: #9ca3af; margin-bottom: 6px; }
+    .stat-remain { font-size: 11px; margin-top: 5px; font-weight: 600; }
+    .stat-remain.done { color: #22c55e; }
+    .stat-remain.needed { color: #d97706; }
+
+    .overall-box { margin: 0 14px 6px; background: #f8fafc; border-radius: 10px; padding: 12px 14px 10px; border: 1.5px solid #e5e7eb; }
+    .overall-box.complete { background: #f0fdf4; border-color: #bbf7d0; }
+    .overall-row { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .overall-total { font-size: 18px; font-weight: 800; color: #111; }
+    .overall-req { font-size: 13px; color: #6b7280; }
+    .overall-req strong { font-size: 14px; color: #374151; }
+    .overall-status { margin-top: 6px; font-size: 12px; font-weight: 700; }
+    .overall-status.done { color: #16a34a; }
+    .overall-status.needed { color: #d97706; }
+
+    .progress-track { background: #e5e7eb; border-radius: 8px; height: 8px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 8px; transition: width 0.4s ease; }
+
+    .add-drive-wrap { padding: 10px 14px; }
+    .add-btn { width: 100%; background: #6366f1; color: #fff; border: none; border-radius: 10px; padding: 11px; cursor: pointer; font-weight: 700; font-size: 15px; }
+
+    .form-box { background: #f0f0ff; border-radius: 12px; padding: 14px; }
+    .form-title { font-weight: 700; font-size: 14px; margin-bottom: 12px; color: #4338ca; }
+    .form-group { margin-bottom: 10px; }
+    .form-label { font-size: 12px; font-weight: 600; color: #6b7280; display: block; margin-bottom: 4px; }
+    .form-label.day { color: #d97706; }
+    .form-label.night { color: #6366f1; }
+    .form-input { padding: 8px 10px; border-radius: 8px; border: 1.5px solid #d1d5db; font-size: 14px; outline: none; background: #f9fafb; width: 100%; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .time-inputs { display: flex; gap: 6px; }
+    .time-input { padding: 8px 10px; border-radius: 8px; border: 1.5px solid #d1d5db; font-size: 14px; outline: none; background: #f9fafb; width: 50%; }
+    .form-actions { display: flex; gap: 8px; }
+    .btn-submit { flex: 1; background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 10px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .btn-cancel { background: #e5e7eb; color: #374151; border: none; border-radius: 8px; padding: 10px 14px; cursor: pointer; font-size: 14px; }
+    textarea.form-input { resize: vertical; }
+
+    .log-list { padding: 4px 14px 16px; }
+    .log-header { font-weight: 700; font-size: 12px; color: #6b7280; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .entry { background: #f8fafc; border-radius: 10px; padding: 11px 13px; border: 1.5px solid #e5e7eb; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .entry-info { flex: 1; min-width: 0; }
+    .entry-date { font-weight: 700; font-size: 13px; color: #111; margin-bottom: 4px; }
+    .entry-times { display: flex; gap: 12px; font-size: 12px; flex-wrap: wrap; }
+    .entry-day { color: #d97706; }
+    .entry-night { color: #6366f1; }
+    .entry-total { color: #6b7280; }
+    .entry-notes { margin-top: 5px; font-size: 11px; color: #9ca3af; font-style: italic; }
+    .entry-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .btn-edit { background: #e0e7ff; color: #4338ca; border: none; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 11px; font-weight: 600; }
+    .btn-del { background: #fee2e2; color: #dc2626; border: none; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 11px; font-weight: 600; }
+    .btn-del.confirm { background: #ef4444; color: #fff; }
+
+    .add-teen-box { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px #0001; padding: 16px; }
+    .add-teen-row { display: flex; gap: 8px; }
+    .add-teen-input { flex: 1; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1d5db; font-size: 15px; outline: none; }
+
+    .empty-state { text-align: center; color: #9ca3af; padding: 40px 0; font-size: 15px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const DAY_REQ = 30 * 60, NIGHT_REQ = 10 * 60, TOTAL_REQ = 40 * 60;
+const STORAGE_KEY = "teen_drive_log_v1";
+
+function toMin(h, m) { return (parseInt(h) || 0) * 60 + (parseInt(m) || 0); }
+function fmtTime(mins) {
+  const h = Math.floor(Math.abs(mins) / 60), m = Math.abs(mins) % 60;
+  return `${h}h ${m.toString().padStart(2, "0")}m`;
+}
+function dateLabel(d) {
+  return new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric", year:"numeric" });
+}
+function loadData() {
+  try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : { teens: [] }; }
+  catch { return { teens: [] }; }
+}
+function saveData(d) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {}
+}
+function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ── Print ──────────────────────────────────────────────────────────────────
+function printTeen(teen) {
+  const entries = teen.entries || [];
+  const totalDay = entries.reduce((s,e) => s + e.dayMin, 0);
+  const totalNight = entries.reduce((s,e) => s + e.nightMin, 0);
+  const grandTotal = totalDay + totalNight;
+  const effDay = Math.min(totalDay, DAY_REQ), effNight = Math.min(totalNight, NIGHT_REQ);
+  const effTotal = effDay + effNight;
+  const dayLeft = Math.max(0, DAY_REQ - totalDay), nightLeft = Math.max(0, NIGHT_REQ - totalNight);
+  const totalLeft = Math.max(0, TOTAL_REQ - effTotal);
+  const overTotal = grandTotal > TOTAL_REQ ? grandTotal - TOTAL_REQ : 0;
+
+  const rows = [...entries].sort((a,b) => b.date.localeCompare(a.date)).map(e =>
+    `<tr><td>${dateLabel(e.date)}</td><td>${fmtTime(e.dayMin)}</td><td>${fmtTime(e.nightMin)}</td><td>${fmtTime(e.dayMin+e.nightMin)}</td><td>${e.notes||""}</td></tr>`
+  ).join("");
+
+  const overallHtml = totalLeft === 0
+    ? `<div class="sv">${fmtTime(grandTotal)} / ${fmtTime(TOTAL_REQ)} required</div><div class="sr">${overTotal>0?`+${fmtTime(overTotal)} over`:"✓ Met!"}</div>`
+    : `<div class="sv">${fmtTime(effTotal)} / ${fmtTime(TOTAL_REQ)} required</div><div class="sr needed">${fmtTime(totalLeft)} remaining</div>`;
+
+  const html = `<!DOCTYPE html><html><head><title>Drive Log – ${teen.name}</title>
+<style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;color:#111}
+h1{font-size:22px;margin-bottom:2px}.sub{color:#666;font-size:13px;margin-bottom:20px}
+.stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.s{border:1.5px solid #e5e7eb;border-radius:8px;padding:12px 16px;flex:1;min-width:130px}
+.sl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.sv{font-size:14px;font-weight:700}.sr{font-size:12px;color:#16a34a;margin-top:2px}
+.sr.needed{color:#d97706}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f3f4f6;padding:8px 10px;text-align:left;border-bottom:2px solid #e5e7eb}
+td{padding:8px 10px;border-bottom:1px solid #f0f0f0}tr:nth-child(even) td{background:#fafafa}
+tfoot td{font-weight:700;background:#f3f4f6}
+.foot{margin-top:24px;font-size:11px;color:#999;border-top:1px solid #e5e7eb;padding-top:10px}
+</style></head><body>
+<h1>🚗 Supervised Drive Time Log</h1>
+<div class="sub">Driver: <strong>${teen.name}</strong> &nbsp;|&nbsp; ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
+<div class="stats">
+  <div class="s"><div class="sl">☀️ Daytime</div><div class="sv">${fmtTime(totalDay)} / ${fmtTime(DAY_REQ)}</div><div class="sr ${dayLeft>0?"needed":""}">${dayLeft===0?"✓ Done":fmtTime(dayLeft)+" left"}</div></div>
+  <div class="s"><div class="sl">🌙 Nighttime</div><div class="sv">${fmtTime(totalNight)} / ${fmtTime(NIGHT_REQ)}</div><div class="sr ${nightLeft>0?"needed":""}">${nightLeft===0?"✓ Done":fmtTime(nightLeft)+" left"}</div></div>
+  <div class="s"><div class="sl">Overall</div>${overallHtml}</div>
+</div>
+<table><thead><tr><th>Date</th><th>Daytime</th><th>Nighttime</th><th>Total</th><th>Notes</th></tr></thead>
+<tbody>${rows}</tbody>
+<tfoot><tr><td>TOTAL (${entries.length})</td><td>${fmtTime(totalDay)}</td><td>${fmtTime(totalNight)}</td><td>${fmtTime(grandTotal)}</td><td></td></tr></tfoot></table>
+<div class="foot">Teen Drive Time Log • 30h day + 10h night required</div>
+<script>window.onload=function(){window.print();}<\/script></body></html>`;
+
+  const url = "data:text/html;charset=utf-8," + encodeURIComponent(html);
+  const win = window.open(url, "_blank");
+  if (!win || win.closed) downloadBlob(html, `drive-log-${teen.name.replace(/\s+/g,"-").toLowerCase()}.html`, "text/html");
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let appData = loadData();
+let deleteConfirms = {}; // entryId -> bool
+let removeConfirms = {}; // teenId -> bool
+
+function getTeenStats(teen) {
+  const entries = teen.entries || [];
+  const totalDay = entries.reduce((s,e) => s + (e.dayMin||0), 0);
+  const totalNight = entries.reduce((s,e) => s + (e.nightMin||0), 0);
+  const grandTotal = totalDay + totalNight;
+  const effDay = Math.min(totalDay, DAY_REQ), effNight = Math.min(totalNight, NIGHT_REQ);
+  const effTotal = effDay + effNight;
+  return { entries, totalDay, totalNight, grandTotal, effDay, effNight, effTotal,
+    dayLeft: Math.max(0, DAY_REQ-totalDay), nightLeft: Math.max(0, NIGHT_REQ-totalNight),
+    totalLeft: Math.max(0, TOTAL_REQ-effTotal), pct: Math.min(100, Math.round(effTotal/TOTAL_REQ*100)),
+    overTotal: grandTotal > TOTAL_REQ ? grandTotal - TOTAL_REQ : 0 };
+}
+
+// ── Form State ─────────────────────────────────────────────────────────────
+let formState = {}; // teenId -> form fields
+let expandedTeens = {}; // teenId -> bool (true = expanded)
+let showForms = {}; // teenId -> bool
+let editIdxMap = {}; // teenId -> index or null
+let showAddTeen = false;
+let newTeenName = "";
+
+function getForm(tid) {
+  return formState[tid] || { date:"", dayH:"", dayM:"", nightH:"", nightM:"", notes:"" };
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function render() {
+  const root = document.getElementById("root");
+  root.innerHTML = buildPage();
+  attachEvents();
+}
+
+function buildPage() {
+  const teens = appData.teens || [];
+  return `
+    <div class="page-header">
+      <div class="icon">🚗</div>
+      <h1>Teen Drive Time Log</h1>
+      <p>30h day + 10h night required</p>
+      <span class="sync-status" style="color:#22c55e">💾 Saved locally</span>
+    </div>
+    <div class="backup-bar">
+      <span>All Teens</span>
+      <button class="btn btn-green" id="exportAll">⬇️ Backup All</button>
+      <button class="btn btn-blue" id="importAllBtn">⬆️ Restore All</button>
+      <input type="file" id="importAllFile" accept=".json" style="display:none" />
+    </div>
+    ${teens.length === 0 ? `<div class="empty-state">No teens added yet.<br>Add one below to get started!</div>` : ""}
+    ${teens.map((teen, i) => buildTeenCard(teen, i)).join("")}
+    <div class="add-teen-box">
+      ${!showAddTeen ? `<button class="btn-purple-full" id="showAddTeen">+ Add Teen Driver</button>` : `
+        <div style="font-weight:700;font-size:15px;color:#1e1b4b;margin-bottom:12px">Add Teen Driver</div>
+        <div class="add-teen-row">
+          <input class="add-teen-input" id="newTeenName" type="text" placeholder="Teen's name" value="${escHtml(newTeenName)}" />
+          <button class="btn btn-purple" id="doAddTeen" style="padding:10px 16px;font-size:15px">Add</button>
+          <button class="btn btn-gray" id="cancelAddTeen" style="padding:10px 12px;font-size:15px">✕</button>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function buildTeenCard(teen, idx) {
+  const tid = teen.id || idx;
+  const expanded = !!expandedTeens[tid];
+  const s = getTeenStats(teen);
+  const removing = !!removeConfirms[tid];
+
+  return `<div class="teen-card" data-tid="${tid}" data-idx="${idx}">
+    <div class="teen-header">
+      <div class="teen-header-top">
+        <button class="teen-name-btn toggle-collapse" data-tid="${tid}">
+          <span class="teen-name">${escHtml(teen.name)}</span>
+          <span class="collapse-arrow">${expanded ? "▾" : "▸"}</span>
+        </button>
+        ${removing
+          ? `<div class="remove-confirm">
+               <span>Sure?</span>
+               <button class="btn-danger confirm-remove" data-idx="${idx}">Yes</button>
+               <button class="btn-ghost cancel-remove" data-tid="${tid}">No</button>
+             </div>`
+          : `<button class="remove-btn start-remove" data-tid="${tid}">Remove</button>`
+        }
+      </div>
+      <div class="mini-progress-wrap">
+        <div class="mini-progress-labels">
+          <span>${s.entries.length} drive${s.entries.length !== 1 ? "s" : ""}</span>
+          <span>${s.pct}% complete</span>
+        </div>
+        <div class="mini-bar-track">
+          <div class="mini-bar-fill ${s.pct >= 100 ? "complete" : ""}" style="width:${s.pct}%"></div>
+        </div>
+      </div>
+      ${expanded ? `
+      <div class="action-btns">
+        <button class="action-btn print-teen" data-idx="${idx}">🖨️ Print/PDF</button>
+        <button class="action-btn export-teen" data-idx="${idx}">⬇️ Backup</button>
+        <button class="action-btn import-teen-btn" data-idx="${idx}">⬆️ Restore</button>
+        <input type="file" class="import-teen-file" data-idx="${idx}" accept=".json" style="display:none" />
+      </div>` : ""}
+    </div>
+    ${expanded ? buildTeenBody(teen, idx, tid, s) : ""}
+  </div>`;
+}
+
+function buildTeenBody(teen, idx, tid, s) {
+  const showForm = !!showForms[tid];
+  const editIdx = editIdxMap[tid] != null ? editIdxMap[tid] : null;
+  const form = getForm(tid);
+  const sortedEntries = [...(teen.entries||[])].sort((a,b) => b.date.localeCompare(a.date));
+
+  return `<div class="teen-body">
+    <div class="stats-grid">
+      ${buildStatBox("☀️ Daytime", s.totalDay, DAY_REQ, s.effDay, s.dayLeft, "#f59e0b")}
+      ${buildStatBox("🌙 Nighttime", s.totalNight, NIGHT_REQ, s.effNight, s.nightLeft, "#6366f1")}
+    </div>
+    <div class="overall-box ${s.totalLeft === 0 ? "complete" : ""}">
+      <div class="stat-label">Overall Progress</div>
+      <div class="overall-row">
+        <span class="overall-total">${fmtTime(s.grandTotal)}</span>
+        <span class="overall-req">Required: <strong>${fmtTime(TOTAL_REQ)}</strong></span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${s.pct}%;background:${s.pct>=100?"#22c55e":"#10b981"}"></div>
+      </div>
+      <div class="overall-status ${s.totalLeft === 0 ? "done" : "needed"}">
+        ${s.totalLeft === 0
+          ? s.overTotal > 0 ? `✓ Requirement met! (+${fmtTime(s.overTotal)} extra)` : "✓ Requirement met!"
+          : `${fmtTime(s.totalLeft)} still needed`}
+      </div>
+    </div>
+    <div class="add-drive-wrap">
+      ${!showForm
+        ? `<button class="add-btn show-form-btn" data-tid="${tid}">+ Add Drive</button>`
+        : buildForm(form, editIdx, tid)
+      }
+    </div>
+    ${sortedEntries.length > 0 ? `
+    <div class="log-list">
+      <div class="log-header">Drive Log — Newest First</div>
+      ${sortedEntries.map(e => {
+        const origIdx = (teen.entries||[]).findIndex(x => x.id === e.id);
+        const isConfirm = deleteConfirms[e.id];
+        return `<div class="entry">
+          <div class="entry-info">
+            <div class="entry-date">${dateLabel(e.date)}</div>
+            <div class="entry-times">
+              <span class="entry-day">☀️ ${fmtTime(e.dayMin)}</span>
+              <span class="entry-night">🌙 ${fmtTime(e.nightMin)}</span>
+              <span class="entry-total">⏱ ${fmtTime(e.dayMin+e.nightMin)}</span>
+            </div>
+            ${e.notes ? `<div class="entry-notes">${escHtml(e.notes)}</div>` : ""}
+          </div>
+          <div class="entry-actions">
+            <button class="btn-edit edit-entry" data-tid="${tid}" data-orig="${origIdx}">Edit</button>
+            <button class="btn-del ${isConfirm?"confirm":""} del-entry" data-tid="${tid}" data-orig="${origIdx}" data-eid="${e.id}">
+              ${isConfirm ? "Sure?" : "Del"}
+            </button>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>` : ""}
+  </div>`;
+}
+
+function buildStatBox(label, total, req, eff, left, color) {
+  const pct = Math.min(100, Math.round(eff/req*100));
+  return `<div class="stat-box">
+    <div class="stat-label">${label}</div>
+    <div class="stat-value">${fmtTime(total)}</div>
+    <div class="stat-sub">of ${fmtTime(req)} req.</div>
+    <div class="progress-track">
+      <div class="progress-fill" style="width:${pct}%;background:${pct>=100?"#22c55e":color}"></div>
+    </div>
+    <div class="stat-remain ${left===0?"done":"needed"}">${left===0?"✓ Done":`${fmtTime(left)} left`}</div>
+  </div>`;
+}
+
+function buildForm(form, editIdx, tid) {
+  return `<div class="form-box">
+    <div class="form-title">${editIdx !== null ? "Edit Entry" : "New Drive Entry"}</div>
+    <div class="form-group">
+      <label class="form-label">Date *</label>
+      <input class="form-input form-date" type="date" data-tid="${tid}" value="${form.date}" />
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label day">☀️ Daytime</label>
+        <div class="time-inputs">
+          <input class="time-input form-dayH" type="number" min="0" max="23" placeholder="hrs" data-tid="${tid}" value="${form.dayH}" />
+          <input class="time-input form-dayM" type="number" min="0" max="59" placeholder="min" data-tid="${tid}" value="${form.dayM}" />
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label night">🌙 Nighttime</label>
+        <div class="time-inputs">
+          <input class="time-input form-nightH" type="number" min="0" max="23" placeholder="hrs" data-tid="${tid}" value="${form.nightH}" />
+          <input class="time-input form-nightM" type="number" min="0" max="59" placeholder="min" data-tid="${tid}" value="${form.nightM}" />
+        </div>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:10px">
+      <label class="form-label">Notes</label>
+      <textarea class="form-input form-notes" rows="2" placeholder="Route, conditions, notes..." data-tid="${tid}">${escHtml(form.notes)}</textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-submit submit-form" data-tid="${tid}">${editIdx !== null ? "Save Changes" : "Log Drive"}</button>
+      <button class="btn-cancel cancel-form" data-tid="${tid}">✕</button>
+    </div>
+  </div>`;
+}
+
+function escHtml(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ── Events ─────────────────────────────────────────────────────────────────
+function attachEvents() {
+  const root = document.getElementById("root");
+
+  // Backup All
+  root.querySelector("#exportAll")?.addEventListener("click", () => {
+    downloadBlob(JSON.stringify({ version:1, exportedAt:new Date().toISOString(), teens:appData.teens }, null, 2),
+      "all-drive-logs.json", "application/json");
+  });
+
+  // Restore All
+  root.querySelector("#importAllBtn")?.addEventListener("click", () => {
+    root.querySelector("#importAllFile").click();
+  });
+  root.querySelector("#importAllFile")?.addEventListener("change", e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const parsed = JSON.parse(evt.target.result);
+        const teens = parsed.teens || (parsed.name ? [parsed] : null);
+        if (!teens) { alert("Invalid backup file."); return; }
+        if (!confirm(`Replace all data with backup (${teens.length} teen(s))?`)) return;
+        appData = { teens }; saveData(appData); deleteConfirms={}; removeConfirms={}; expandedTeens={}; showForms={}; editIdxMap={}; formState={};
+        render(); alert("Import successful!");
+      } catch { alert("Could not read file."); }
+    };
+    reader.readAsText(file); e.target.value="";
+  });
+
+  // Show Add Teen
+  root.querySelector("#showAddTeen")?.addEventListener("click", () => { showAddTeen=true; render(); });
+  root.querySelector("#cancelAddTeen")?.addEventListener("click", () => { showAddTeen=false; newTeenName=""; render(); });
+  root.querySelector("#newTeenName")?.addEventListener("input", e => { newTeenName=e.target.value; });
+  root.querySelector("#newTeenName")?.addEventListener("keydown", e => { if (e.key==="Enter") doAddTeen(); });
+  root.querySelector("#doAddTeen")?.addEventListener("click", doAddTeen);
+
+  // Toggle collapse
+  root.querySelectorAll(".toggle-collapse").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tid = btn.dataset.tid;
+      expandedTeens[tid] = !expandedTeens[tid];
+      render();
+    });
+  });
+
+  // Remove
+  root.querySelectorAll(".start-remove").forEach(btn => {
+    btn.addEventListener("click", () => { removeConfirms[btn.dataset.tid]=true; render(); });
+  });
+  root.querySelectorAll(".cancel-remove").forEach(btn => {
+    btn.addEventListener("click", () => { removeConfirms[btn.dataset.tid]=false; render(); });
+  });
+  root.querySelectorAll(".confirm-remove").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.idx);
+      const teen = appData.teens[idx];
+      if (teen) { delete expandedTeens[teen.id||idx]; delete removeConfirms[teen.id||idx]; }
+      appData.teens.splice(idx, 1);
+      saveData(appData); render();
+    });
+  });
+
+  // Print / Backup / Restore per teen
+  root.querySelectorAll(".print-teen").forEach(btn => {
+    btn.addEventListener("click", () => printTeen(appData.teens[parseInt(btn.dataset.idx)]));
+  });
+  root.querySelectorAll(".export-teen").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const teen = appData.teens[parseInt(btn.dataset.idx)];
+      downloadBlob(JSON.stringify({ name:teen.name, entries:teen.entries, exportedAt:new Date().toISOString() }, null, 2),
+        `drive-log-${teen.name.replace(/\s+/g,"-").toLowerCase()}.json`, "application/json");
+    });
+  });
+  root.querySelectorAll(".import-teen-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      btn.closest(".teen-card").querySelector(".import-teen-file").click();
+    });
+  });
+  root.querySelectorAll(".import-teen-file").forEach(input => {
+    input.addEventListener("change", e => {
+      const file = e.target.files[0]; if (!file) return;
+      const idx = parseInt(input.dataset.idx);
+      const teen = appData.teens[idx];
+      const reader = new FileReader();
+      reader.onload = evt => {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (!parsed.entries) { alert("Invalid backup."); return; }
+          if (!confirm(`Replace all of ${teen.name}'s entries with backup (${parsed.entries.length} drives)?`)) return;
+          appData.teens[idx].entries = parsed.entries;
+          saveData(appData); render(); alert("Import successful!");
+        } catch { alert("Could not read file."); }
+      };
+      reader.readAsText(file); e.target.value="";
+    });
+  });
+
+  // Show/hide drive form
+  root.querySelectorAll(".show-form-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tid = btn.dataset.tid;
+      showForms[tid]=true; editIdxMap[tid]=null;
+      formState[tid]={ date:"", dayH:"", dayM:"", nightH:"", nightM:"", notes:"" };
+      render();
+    });
+  });
+  root.querySelectorAll(".cancel-form").forEach(btn => {
+    btn.addEventListener("click", () => { showForms[btn.dataset.tid]=false; editIdxMap[btn.dataset.tid]=null; render(); });
+  });
+
+  // Form field sync
+  root.querySelectorAll(".form-date").forEach(el => el.addEventListener("input", e => { syncForm(e.target.dataset.tid, "date", e.target.value); }));
+  root.querySelectorAll(".form-dayH").forEach(el => el.addEventListener("input", e => { syncForm(e.target.dataset.tid, "dayH", e.target.value); }));
+  root.querySelectorAll(".form-dayM").forEach(el => el.addEventListener("input", e => { syncForm(e.target.dataset.tid, "dayM", e.target.value); }));
+  root.querySelectorAll(".form-nightH").forEach(el => el.addEventListener("input", e => { syncForm(e.target.dataset.tid, "nightH", e.target.value); }));
+  root.querySelectorAll(".form-nightM").forEach(el => el.addEventListener("input", e => { syncForm(e.target.dataset.tid, "nightM", e.target.value); }));
+  root.querySelectorAll(".form-notes").forEach(el => el.addEventListener("input", e => { syncForm(e.target.dataset.tid, "notes", e.target.value); }));
+
+  // Submit form
+  root.querySelectorAll(".submit-form").forEach(btn => {
+    btn.addEventListener("click", () => submitForm(btn.dataset.tid));
+  });
+
+  // Edit entry
+  root.querySelectorAll(".edit-entry").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tid = btn.dataset.tid, origIdx = parseInt(btn.dataset.orig);
+      const teen = appData.teens.find(t => String(t.id||appData.teens.indexOf(t)) === tid);
+      if (!teen) return;
+      const e = teen.entries[origIdx];
+      editIdxMap[tid] = origIdx;
+      formState[tid] = { date:e.date, dayH:String(Math.floor(e.dayMin/60)), dayM:String(e.dayMin%60), nightH:String(Math.floor(e.nightMin/60)), nightM:String(e.nightMin%60), notes:e.notes||"" };
+      showForms[tid]=true;
+      render();
+    });
+  });
+
+  // Delete entry
+  root.querySelectorAll(".del-entry").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tid = btn.dataset.tid, origIdx = parseInt(btn.dataset.orig), eid = parseInt(btn.dataset.eid);
+      if (deleteConfirms[eid]) {
+        const teen = appData.teens.find(t => String(t.id||appData.teens.indexOf(t)) === tid);
+        if (teen) { teen.entries.splice(origIdx, 1); saveData(appData); }
+        delete deleteConfirms[eid]; render();
+      } else {
+        deleteConfirms[eid]=true; render();
+      }
+    });
+  });
+}
+
+function syncForm(tid, key, val) {
+  if (!formState[tid]) formState[tid]={};
+  formState[tid][key]=val;
+}
+
+function submitForm(tid) {
+  const form = getForm(tid);
+  const dayMin = toMin(form.dayH, form.dayM), nightMin = toMin(form.nightH, form.nightM);
+  if (!form.date) { alert("Please enter a date."); return; }
+  if (dayMin===0 && nightMin===0) { alert("Please enter at least some drive time."); return; }
+  const teen = appData.teens.find(t => String(t.id||appData.teens.indexOf(t)) === tid);
+  if (!teen) return;
+  const editIdx = editIdxMap[tid];
+  const entry = { date:form.date, dayMin, nightMin, notes:form.notes, id: editIdx!==null ? teen.entries[editIdx].id : Date.now() };
+  if (editIdx !== null) { teen.entries[editIdx]=entry; } else { teen.entries.push(entry); }
+  saveData(appData);
+  formState[tid]={ date:"", dayH:"", dayM:"", nightH:"", nightM:"", notes:"" };
+  showForms[tid]=false; editIdxMap[tid]=null;
+  render();
+}
+
+function doAddTeen() {
+  const name = (newTeenName||"").trim();
+  if (!name) return;
+  if (appData.teens.find(t => t.name.toLowerCase()===name.toLowerCase())) { alert("Name already exists."); return; }
+  const teen = { name, entries:[], id:Date.now() };
+  appData.teens.push(teen);
+  expandedTeens[teen.id]=true;
+  saveData(appData); showAddTeen=false; newTeenName=""; render();
+}
+
+// ── Service Worker ─────────────────────────────────────────────────────────
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+
+render();
+</script>
+</body>
+</html>
